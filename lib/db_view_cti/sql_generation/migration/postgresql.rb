@@ -1,21 +1,23 @@
 module DBViewCTI
   module SQLGeneration
     module Migration
-    
+
       class PostgreSQL < Base
-        
+
+        # TODO: use either UUID or integer based on configuration rather than hard coded
+
         def create_trigger_sql
           # trigger function
           @trigger_func_name = DBViewCTI::Names.trigger_function_name(@derived_class)
-  
+
           insert_trigger_func = <<-eos
             CREATE OR REPLACE FUNCTION #{trigger_func_name}()
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $function$
               DECLARE
-                base_id integer;
-                derived_id integer;
+                base_id uuid;
+                derived_id uuid;
                 return_row RECORD;
               BEGIN
                 IF TG_OP = 'INSERT' THEN
@@ -76,17 +78,17 @@ module DBViewCTI
               END;          
             $function$;
           eos
-  
+
           # trigger:
           insert_trigger = <<-eos
             CREATE TRIGGER #{@trigger_name}
             INSTEAD OF INSERT OR UPDATE OR DELETE ON #{@view_name}
             FOR EACH ROW
-            EXECUTE PROCEDURE #{trigger_func_name}(); 
+            EXECUTE PROCEDURE #{trigger_func_name}();
           eos
           insert_trigger_func + insert_trigger
         end
-  
+
         def view_exists_sql
           "SELECT count(*) FROM pg_views where viewname='#{@view_name}';"
         end
@@ -97,15 +99,15 @@ module DBViewCTI
             DROP FUNCTION IF EXISTS #{trigger_func_name}();
           eos
         end
-        
+
         private
-        
+
           def trigger_func_name
             DBViewCTI::Names.trigger_function_name(@derived_class)
           end
-        
+
       end
-      
+
     end
   end
 end
